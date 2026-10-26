@@ -4,6 +4,12 @@ const FILTER_LABELS = {
   active: "진행 중인 할 일이 없습니다",
   completed: "완료된 항목이 없습니다",
 };
+const PETAL_COLORS = ["#f4a9c8", "#d9d0f4", "#c8eadb", "#fff0b8", "#f7c8d8", "#c9b8eb"];
+const PETAL_DIRECTIONS = [
+  [-38, -48], [-18, -62], [8, -58], [32, -46],
+  [48, -22], [52, 5], [38, 30], [16, 46],
+  [-12, 50], [-36, 34], [-50, 10], [-52, -18],
+];
 
 const form = document.querySelector("#todo-form");
 const input = document.querySelector("#todo-input");
@@ -64,6 +70,35 @@ function saveTodos() {
 
 function showMessage(message = "") {
   formMessage.textContent = message;
+}
+
+function createPetalBurst(origin) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const rect = origin.getBoundingClientRect();
+  const burst = document.createElement("div");
+  burst.className = "petal-burst";
+  burst.setAttribute("aria-hidden", "true");
+
+  let petalsRemaining = PETAL_DIRECTIONS.length;
+  PETAL_DIRECTIONS.forEach(([x, y], index) => {
+    const petal = document.createElement("span");
+    petal.className = "flower-petal";
+    petal.style.setProperty("--origin-x", `${rect.left + rect.width / 2}px`);
+    petal.style.setProperty("--origin-y", `${rect.top + rect.height / 2}px`);
+    petal.style.setProperty("--petal-x", `${x}px`);
+    petal.style.setProperty("--petal-y", `${y}px`);
+    petal.style.setProperty("--petal-rotation", `${index * 55}deg`);
+    petal.style.setProperty("--petal-color", PETAL_COLORS[index % PETAL_COLORS.length]);
+    petal.style.setProperty("--petal-delay", `${index * 18}ms`);
+    petal.addEventListener("animationend", () => {
+      petalsRemaining -= 1;
+      if (petalsRemaining === 0) burst.remove();
+    }, { once: true });
+    burst.append(petal);
+  });
+
+  document.body.append(burst);
 }
 
 function getVisibleTodos() {
@@ -167,6 +202,7 @@ list.addEventListener("click", (event) => {
   if (action.dataset.action === "delete") {
     todos = todos.filter((entry) => entry.id !== todo.id);
   } else if (action.dataset.action === "toggle" && action instanceof HTMLInputElement) {
+    if (action.checked && !todo.isCompleted) createPetalBurst(action);
     todo.isCompleted = action.checked;
   } else {
     return;
